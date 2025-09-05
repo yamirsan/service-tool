@@ -11,9 +11,3 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./service_tool.db
     rootDir: backend
-
-  - type: static
-    name: service-tool-frontend
-    buildCommand: npm install && npm run build
-    staticPublishPath: build
-    rootDir: frontend

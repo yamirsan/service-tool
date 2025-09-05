@@ -1,0 +1,39 @@
+# Node
+node_modules
+frontend/node_modules
+frontend/build
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+*.pyc
+.backend_cache/
+
+# Databases & local data
+backend/service_tool.db
+*.sqlite
+*.db
+
+# Env files
+.env
+frontend/.env
+backend/.env
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Coverage/build
+coverage/
+dist/
+
+# Backups
+backup/
