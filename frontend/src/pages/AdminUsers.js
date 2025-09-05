@@ -5,44 +5,70 @@ import toast from 'react-hot-toast';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
+const API = process.env.REACT_APP_API_BASE || '';
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  return token ? { Authorization: `Bearer ${token}` } : undefined;
+};
+
 const fetchUsers = async () => {
-  const { data } = await axios.get('/admin/users');
+  const { data } = await axios.get(`${API}/admin/users`, { headers: authHeaders() });
   return data || [];
 };
 
 const AdminUsers = () => {
-  const { isAdmin, hasPermission, user } = useAuth();
+  const { isAdmin, hasPermission, user, logout } = useAuth();
   const allowed = isAdmin || hasPermission('manage_users');
   const qc = useQueryClient();
-  const { data: users = [], isLoading } = useQuery(['admin-users'], fetchUsers, { enabled: allowed });
+  const { data: users = [], isLoading } = useQuery(['admin-users'], fetchUsers, { 
+    enabled: allowed,
+    onError: (e) => {
+      const status = e?.response?.status;
+      if (status === 401) {
+        toast.error('Session expired. Please sign in again.');
+        logout();
+      }
+    }
+  });
 
   const [form, setForm] = useState({ username: '', password: '', role: 'user', permissions: '' });
   const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const createMutation = useMutation(
-    async (payload) => (await axios.post('/admin/users', payload)).data,
+    async (payload) => (await axios.post(`${API}/admin/users`, payload, { headers: authHeaders() })).data,
     { onSuccess: () => { toast.success('User created'); qc.invalidateQueries(['admin-users']); setForm({ username: '', password: '', role: 'user', permissions: ''}); },
-      onError: (e) => toast.error(e?.response?.data?.detail || 'Failed to create user') }
+      onError: (e) => {
+        if (e?.response?.status === 401) { toast.error('Session expired. Please sign in again.'); logout(); return; }
+        toast.error(e?.response?.data?.detail || 'Failed to create user');
+      } }
   );
 
   const updateMutation = useMutation(
-    async ({ id, updates }) => (await axios.put(`/admin/users/${id}`, updates)).data,
+    async ({ id, updates }) => (await axios.put(`${API}/admin/users/${id}`, updates, { headers: authHeaders() })).data,
     { onSuccess: () => { toast.success('User updated'); qc.invalidateQueries(['admin-users']); },
-      onError: (e) => toast.error(e?.response?.data?.detail || 'Failed to update user') }
+      onError: (e) => {
+        if (e?.response?.status === 401) { toast.error('Session expired. Please sign in again.'); logout(); return; }
+        toast.error(e?.response?.data?.detail || 'Failed to update user');
+      } }
   );
 
   const deleteMutation = useMutation(
-    async (id) => (await axios.delete(`/admin/users/${id}`)).data,
+    async (id) => (await axios.delete(`${API}/admin/users/${id}`, { headers: authHeaders() })).data,
     { onSuccess: () => { toast.success('User deleted'); qc.invalidateQueries(['admin-users']); },
-      onError: (e) => toast.error(e?.response?.data?.detail || 'Failed to delete user') }
+      onError: (e) => {
+        if (e?.response?.status === 401) { toast.error('Session expired. Please sign in again.'); logout(); return; }
+        toast.error(e?.response?.data?.detail || 'Failed to delete user');
+      } }
   );
 
-  if (!allowed) return <div className="p-6">Not authorized.</div>;
-
+  // Move hook before any conditional returns to satisfy rules-of-hooks
   const visibleUsers = useMemo(() => {
     if (!showOnlyMine || !user?.id) return users;
     return users.filter(u => u.created_by_id === user.id);
   }, [showOnlyMine, users, user]);
+
+  if (!allowed) return <div className="p-6">Not authorized.</div>;
 
   return (
     <div className="max-w-5xl mx-auto p-6">
@@ -113,7 +139,7 @@ const UserRow = ({ user, onUpdate, onDelete }) => {
         <>
           <div className="w-40 font-medium">{user.username}</div>
           <div className="w-28"><span className={`px-2 py-1 text-xs rounded ${user.is_active==='Active'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-700'}`}>{user.is_active}</span></div>
-          <div className="w-28"><span className={`px-2 py-1 text-xs rounded ${user.role==='admin'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{user.role || 'user'}</span></div>
+          <div className="w-28"><span className={`px-2 py-1 text-xs rounded ${user.role==='admin' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>{user.role || 'user'}</span></div>
           <div className="flex-1 text-sm text-gray-600">{user.permissions || '-'}</div>
           <div className="w-48 text-xs text-gray-500">Created by: {user.created_by_username || '-'}</div>
           <div className="flex gap-2">
