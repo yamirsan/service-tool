@@ -740,6 +740,158 @@ async def detect_samsung(text: str = Query(..., min_length=1), db: Session = Dep
     }
 
 
+@app.get("/parts/device-options")
+async def get_device_options(
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    max_items: int = Query(500, ge=1, le=5000),
+    db: Session = Depends(get_db)
+):
+    """Return distinct detected Samsung device options (model name/code) for dropdowns.
+    Applies lightweight part filtering (search/status) server-side and performs the
+    same Samsung detection heuristic used in /parts, but only returns unique
+    (model_name, model_code) pairs, greatly reducing payload size vs fetching all parts.
+    """
+    # Base query limited to needed columns only
+    query = db.query(PartModel.code, PartModel.description)
+
+    if search:
+        s = (search or "").strip()
+        filters = []
+        filters.append(PartModel.code.ilike(f"%{s}%"))
+        filters.append(PartModel.description.ilike(f"%{s}%"))
+        s_norm = re.sub(r"[^A-Za-z0-9]+", "", s).upper()
+        if s_norm and s_norm != s:
+            filters.append(PartModel.code.ilike(f"%{s_norm}%"))
+            filters.append(PartModel.description.ilike(f"%{s_norm}%"))
+        for m in re.finditer(r"\d{3,4}", s):
+            tail = m.group(0)
+            filters.append(PartModel.code.ilike(f"%{tail}%"))
+            filters.append(PartModel.description.ilike(f"%{tail}%"))
+        lm = re.search(r"([A-Za-z])(\d{3,4})", s_norm or s)
+        if lm:
+            lead = lm.group(1).upper()
+            body = lm.group(2)
+            pattern = f"%{lead}{body}%"
+            filters.append(PartModel.code.ilike(pattern))
+            filters.append(PartModel.description.ilike(pattern))
+        query = query.filter(or_(*filters))
+
+    if status:
+        query = query.filter(PartModel.status == status)
+
+    # Preload Samsung models and build detection indices (mirrors logic in /parts)
+    sams = db.query(SamsungModelORM).all()
+
+    def base_code(code: Optional[str]) -> Optional[str]:
+        if not code:
+            return None
+        c = code.split('/')[0]
+        m = re.match(r"^([A-Z]{2}-[A-Z0-9]*?\d+)", c, re.IGNORECASE)
+        return m.group(1).upper() if m else c.upper()
+
+    code_entries = []  # (pattern_lower, model)
+    name_entries = []  # (name_lower, model)
+    tail_to_models = {}
+
+    def add_tail_map(key: str, model):
+        if not key:
+            return
+        tail_to_models.setdefault(key, []).append(model)
+
+    for mobj in sams:
+        if mobj.model_code:
+            c_full = mobj.model_code.upper()
+            code_entries.append((c_full.lower(), mobj))
+            b = base_code(c_full)
+            if b and b.lower() != c_full.lower():
+                code_entries.append((b.lower(), mobj))
+            c_no_region = c_full.split('/')[0]
+            c_no_sm = c_no_region.replace('SM-', '')
+            if c_no_sm and c_no_sm.lower() not in [p for p, _ in code_entries]:
+                code_entries.append((c_no_sm.lower(), mobj))
+            m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
+            code_body = m2.group(1) if m2 else c_no_region
+            code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
+            if code_body_nosuf and code_body_nosuf.lower() not in [p for p, _ in code_entries]:
+                code_entries.append((code_body_nosuf.lower(), mobj))
+            mnum = re.search(r"(\d{3,4})", code_body)
+            if mnum:
+                add_tail_map(mnum.group(1), mobj)
+        if mobj.model_name:
+            name_entries.append((mobj.model_name.strip().lower(), mobj))
+
+    def detect_for_text(text: str):
+        t = (text or "").lower()
+        # Prefer code matches (longest first)
+        for pat, sm in sorted(code_entries, key=lambda x: len(x[0]), reverse=True):
+            if pat and pat in t:
+                return sm
+        # Fallback to name matches (longest first)
+        for nm, sm in sorted(name_entries, key=lambda x: len(x[0]), reverse=True):
+            if nm and nm in t:
+                return sm
+        # Numeric-tail fallback: detect 3-4 digit sequences like '928' in 'oled928'
+        for mnd in re.finditer(r"\d{3,4}", t):
+            num = mnd.group(0)
+            cands = tail_to_models.get(num)
+            if not cands:
+                continue
+            if len(cands) == 1:
+                return cands[0]
+            # Disambiguate by preceding letter in text (a/s/m/x/p/t/r/l/e, etc.)
+            idx = mnd.start()
+            prev = t[idx - 1] if idx - 1 >= 0 else ''
+            if prev and prev.isalpha():
+                for cand in cands:
+                    cc = (cand.model_code or '').upper().split('/')[0]
+                    mlead = re.match(r"^(?:SM-)?([A-Z])", cc)
+                    lead = mlead.group(1).lower() if mlead else ''
+                    if lead and lead == prev:
+                        return cand
+            # If still ambiguous, prefer categories in this priority: highend > tab > wearable > midend > lowend
+            priority = {"highend": 4, "tab": 3, "wearable": 2, "midend": 1, "lowend": 0}
+            cands_sorted = sorted(cands, key=lambda x: priority.get(getattr(x, 'category', None) or '', 0), reverse=True)
+            return cands_sorted[0]
+        return None
+
+    seen = set()
+    results = []
+
+    # Iterate with server-side yielding for efficiency on large tables
+    for row in query.yield_per(1000):  # row is tuple(code, description)
+        text = f"{row.code or ''} {row.description or ''}".strip()
+        if not text:
+            continue
+        smatch = detect_for_text(text)
+        if not smatch:
+            continue
+        name = (getattr(smatch, 'model_name', None) or '').strip()
+        code_val = (getattr(smatch, 'model_code', None) or '').strip()
+        if not name and not code_val:
+            continue
+        key = f"{name}||{code_val}".lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        label = name if name else code_val
+        if name and code_val and code_val not in label:
+            label = f"{name} ({code_val})"
+        results.append({
+            'key': key,
+            'label': label,
+            'model_name': name or None,
+            'model_code': code_val or None,
+            'category': getattr(smatch, 'category', None)
+        })
+        if len(results) >= max_items:
+            break
+
+    # Sort by label for stable UX
+    results.sort(key=lambda x: x['label'])
+    return results
+
+
 @app.get("/parts/{part_id}", response_model=Part)
 async def get_part(part_id: int, db: Session = Depends(get_db)):
     part = db.query(PartModel).filter(PartModel.id == part_id).first()
@@ -1335,154 +1487,3 @@ async def calculate_price(payload: PriceCalculation, db: Session = Depends(get_d
         labor_level_used=labor_level_used or str(payload.labor_level or '')
     )
 
-
-@app.get("/parts/device-options")
-async def get_device_options(
-    search: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    max_items: int = Query(500, ge=1, le=5000),
-    db: Session = Depends(get_db)
-):
-    """Return distinct detected Samsung device options (model name/code) for dropdowns.
-    Applies lightweight part filtering (search/status) server-side and performs the
-    same Samsung detection heuristic used in /parts, but only returns unique
-    (model_name, model_code) pairs, greatly reducing payload size vs fetching all parts.
-    """
-    # Base query limited to needed columns only
-    query = db.query(PartModel.code, PartModel.description)
-
-    if search:
-        s = (search or "").strip()
-        filters = []
-        filters.append(PartModel.code.ilike(f"%{s}%"))
-        filters.append(PartModel.description.ilike(f"%{s}%"))
-        s_norm = re.sub(r"[^A-Za-z0-9]+", "", s).upper()
-        if s_norm and s_norm != s:
-            filters.append(PartModel.code.ilike(f"%{s_norm}%"))
-            filters.append(PartModel.description.ilike(f"%{s_norm}%"))
-        for m in re.finditer(r"\d{3,4}", s):
-            tail = m.group(0)
-            filters.append(PartModel.code.ilike(f"%{tail}%"))
-            filters.append(PartModel.description.ilike(f"%{tail}%"))
-        lm = re.search(r"([A-Za-z])(\d{3,4})", s_norm or s)
-        if lm:
-            lead = lm.group(1).upper()
-            body = lm.group(2)
-            pattern = f"%{lead}{body}%"
-            filters.append(PartModel.code.ilike(pattern))
-            filters.append(PartModel.description.ilike(pattern))
-        query = query.filter(or_(*filters))
-
-    if status:
-        query = query.filter(PartModel.status == status)
-
-    # Preload Samsung models and build detection indices (mirrors logic in /parts)
-    sams = db.query(SamsungModelORM).all()
-
-    def base_code(code: Optional[str]) -> Optional[str]:
-        if not code:
-            return None
-        c = code.split('/')[0]
-        m = re.match(r"^([A-Z]{2}-[A-Z0-9]*?\d+)", c, re.IGNORECASE)
-        return m.group(1).upper() if m else c.upper()
-
-    code_entries = []  # (pattern_lower, model)
-    name_entries = []  # (name_lower, model)
-    tail_to_models = {}
-
-    def add_tail_map(key: str, model):
-        if not key:
-            return
-        tail_to_models.setdefault(key, []).append(model)
-
-    for mobj in sams:
-        if mobj.model_code:
-            c_full = mobj.model_code.upper()
-            code_entries.append((c_full.lower(), mobj))
-            b = base_code(c_full)
-            if b and b.lower() != c_full.lower():
-                code_entries.append((b.lower(), mobj))
-            c_no_region = c_full.split('/')[0]
-            c_no_sm = c_no_region.replace('SM-', '')
-            if c_no_sm and c_no_sm.lower() not in [p for p, _ in code_entries]:
-                code_entries.append((c_no_sm.lower(), mobj))
-            m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
-            code_body = m2.group(1) if m2 else c_no_region
-            code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
-            if code_body_nosuf and code_body_nosuf.lower() not in [p for p, _ in code_entries]:
-                code_entries.append((code_body_nosuf.lower(), mobj))
-            mnum = re.search(r"(\d{3,4})", code_body)
-            if mnum:
-                add_tail_map(mnum.group(1), mobj)
-        if mobj.model_name:
-            name_entries.append((mobj.model_name.strip().lower(), mobj))
-
-    def detect_for_text(text: str):
-        t = (text or "").lower()
-        # Prefer code matches (longest first)
-        for pat, sm in sorted(code_entries, key=lambda x: len(x[0]), reverse=True):
-            if pat and pat in t:
-                return sm
-        # Fallback to name matches (longest first)
-        for nm, sm in sorted(name_entries, key=lambda x: len(x[0]), reverse=True):
-            if nm and nm in t:
-                return sm
-        # Numeric-tail fallback: detect 3-4 digit sequences like '928' in 'oled928'
-        for mnd in re.finditer(r"\d{3,4}", t):
-            num = mnd.group(0)
-            cands = tail_to_models.get(num)
-            if not cands:
-                continue
-            if len(cands) == 1:
-                return cands[0]
-            # Disambiguate by preceding letter in text (a/s/m/x/p/t/r/l/e, etc.)
-            idx = mnd.start()
-            prev = t[idx - 1] if idx - 1 >= 0 else ''
-            if prev and prev.isalpha():
-                for cand in cands:
-                    cc = (cand.model_code or '').upper().split('/')[0]
-                    mlead = re.match(r"^(?:SM-)?([A-Z])", cc)
-                    lead = mlead.group(1).lower() if mlead else ''
-                    if lead and lead == prev:
-                        return cand
-            # If still ambiguous, prefer categories in this priority: highend > tab > wearable > midend > lowend
-            priority = {"highend": 4, "tab": 3, "wearable": 2, "midend": 1, "lowend": 0}
-            cands_sorted = sorted(cands, key=lambda x: priority.get(getattr(x, 'category', None) or '', 0), reverse=True)
-            return cands_sorted[0]
-        return None
-
-    seen = set()
-    results = []
-
-    # Iterate with server-side yielding for efficiency on large tables
-    for row in query.yield_per(1000):  # row is tuple(code, description)
-        text = f"{row.code or ''} {row.description or ''}".strip()
-        if not text:
-            continue
-        smatch = detect_for_text(text)
-        if not smatch:
-            continue
-        name = (getattr(smatch, 'model_name', None) or '').strip()
-        code_val = (getattr(smatch, 'model_code', None) or '').strip()
-        if not name and not code_val:
-            continue
-        key = f"{name}||{code_val}".lower()
-        if key in seen:
-            continue
-        seen.add(key)
-        label = name if name else code_val
-        if name and code_val and code_val not in label:
-            label = f"{name} ({code_val})"
-        results.append({
-            'key': key,
-            'label': label,
-            'model_name': name or None,
-            'model_code': code_val or None,
-            'category': getattr(smatch, 'category', None)
-        })
-        if len(results) >= max_items:
-            break
-
-    # Sort by label for stable UX
-    results.sort(key=lambda x: x['label'])
-    return results

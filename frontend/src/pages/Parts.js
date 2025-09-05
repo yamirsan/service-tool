@@ -83,9 +83,11 @@ const Parts = () => {
   // Build device options using optimized backend endpoint
   const fetchDeviceOptions = useCallback(async () => {
     const params = new URLSearchParams();
+    // Always send max_items so backend validation never fails even if defaults change
+    params.append('max_items', '500');
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (statusFilter) params.append('status', statusFilter);
-    // limit handled server-side (default 500)
+    // limit handled server-side (default / configured by max_items)
     const res = await axios.get(`${API}/parts/device-options?${params.toString()}`);
     const items = Array.isArray(res.data) ? res.data : [];
     return items.map(item => ({ key: item.key, label: item.label }));
