@@ -84,8 +84,10 @@ export const AuthProvider = ({ children }) => {
     .filter(Boolean);
   const baseAdmin = normalizedRole === 'admin';
   const hasPermission = (perm) => baseAdmin || permsList.includes(String(perm ?? '').trim().toLowerCase());
-  // Treat users with manage_users as admin-equivalent for routing/UX
-  const isAdmin = baseAdmin || permsList.includes('manage_users');
+  // Treat users with any elevated permission as admin-equivalent for routing/UX
+  const adminPerms = new Set(['manage_users','manage_parts','manage_formulas','manage_samsung_models','upload_excel']);
+  const usernameNorm = String(user?.username ?? '').trim().toLowerCase();
+  const isAdmin = baseAdmin || permsList.some(p => adminPerms.has(p)) || usernameNorm === 'admin';
 
   const value = {
     isAuthenticated,
