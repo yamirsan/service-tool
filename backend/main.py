@@ -340,9 +340,81 @@ async def get_parts(
         else:
             query = query.filter(PartModel.stock_qty == 0)
     
-    # When filtering by device, we must enrich all matching rows first, then paginate
+    # Optimized device filtering: translate device key to SQL patterns to narrow result set before enrichment
     if device:
-        parts = query.all()
+        dev = (device or '').strip().lower()
+        # device key is "name||code" (lowercased). Extract both parts.
+        name_lc, code_lc = None, None
+        if '||' in dev:
+            parts_key = dev.split('||', 1)
+            name_lc = parts_key[0] or None
+            code_lc = parts_key[1] or None
+        else:
+            # Fallback: treat entire value as code
+            code_lc = dev
+        # Try to load Samsung model for more accurate patterns
+        model_obj = None
+        if code_lc:
+            model_obj = db.query(SamsungModelORM).filter(SamsungModelORM.model_code.ilike(code_lc)).first()
+        if not model_obj and name_lc:
+            model_obj = db.query(SamsungModelORM).filter(SamsungModelORM.model_name.ilike(name_lc)).first()
+
+        patterns = set()
+        def add(p: Optional[str]):
+            if p:
+                patterns.add(p.lower())
+        
+        def base_code(code: Optional[str]) -> Optional[str]:
+            if not code:
+                return None
+            c = code.split('/')[0]
+            m = re.match(r"^([A-Z]{2}-[A-Z0-9]*?\d+)", c, re.IGNORECASE)
+            return m.group(1).upper() if m else c.upper()
+
+        def build_patterns_from_code(c_full: str):
+            c_full_u = (c_full or '').upper()
+            add(c_full_u)
+            c_no_region = c_full_u.split('/')[0]
+            add(c_no_region)
+            c_no_sm = c_no_region.replace('SM-', '')
+            add(c_no_sm)
+            # Body after hyphen
+            m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
+            code_body = m2.group(1) if m2 else c_no_region
+            add(code_body)
+            code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
+            add(code_body_nosuf)
+            # Lead letter + numeric tail (e.g., S928)
+            mnum = re.search(r"(\d{3,4})", code_body)
+            if mnum:
+                tail = mnum.group(1)
+                # determine lead letter
+                mlead = re.match(r"^(?:SM-)?([A-Z])", c_no_region)
+                lead = mlead.group(1) if mlead else ''
+                if lead:
+                    add(f"{lead}{tail}")
+                    add(f"SM-{lead}{tail}")
+                # Do NOT add tail alone to avoid false positives in SQL prefiltering
+
+        if model_obj and getattr(model_obj, 'model_code', None):
+            build_patterns_from_code(model_obj.model_code)
+        elif code_lc:
+            build_patterns_from_code(code_lc)
+        if model_obj and getattr(model_obj, 'model_name', None):
+            add(model_obj.model_name)
+        elif name_lc:
+            add(name_lc)
+
+        if patterns:
+            device_filters = []
+            for p in patterns:
+                like = f"%{p}%"
+                device_filters.append(PartModel.code.ilike(like))
+                device_filters.append(PartModel.description.ilike(like))
+            query = query.filter(or_(*device_filters))
+
+        # After narrowing by SQL, paginate now
+        parts = query.offset(skip).limit(limit).all()
     else:
         parts = query.offset(skip).limit(limit).all()
 
@@ -455,16 +527,7 @@ async def get_parts(
         }
         enriched.append(item)
 
-    # If device filter provided, filter enriched results and then paginate
-    if device:
-        dev = (device or '').strip().lower()
-        def dev_key(itm: dict) -> str:
-            name = (itm.get('samsung_match_name') or '').strip()
-            code = (itm.get('samsung_match_code') or '').strip()
-            return f"{name}||{code}".lower()
-        filtered = [e for e in enriched if dev_key(e) == dev]
-        enriched = filtered[skip: skip + max(0, limit)] if limit is not None else filtered[skip:]
-
+    # If device filter provided, do not post-filter here anymore as SQL already narrowed results
     return enriched
 
 
@@ -522,87 +585,66 @@ async def get_parts_count(
         total = query.count()
         return {"total": int(total)}
 
-    # With device filter, need to enrich and count only matches
-    sams = db.query(SamsungModelORM).all()
-
-    def base_code(code: Optional[str]) -> Optional[str]:
-        if not code:
-            return None
-        c = code.split('/')[0]
-        m = re.match(r"^([A-Z]{2}-[A-Z0-9]*?\d+)", c, re.IGNORECASE)
-        return m.group(1).upper() if m else c.upper()
-
-    code_entries = []
-    name_entries = []
-    tail_to_models = {}
-
-    def add_tail_map(key: str, model):
-        if not key:
-            return
-        tail_to_models.setdefault(key, []).append(model)
-
-    for mobj in sams:
-        if mobj.model_code:
-            c_full = mobj.model_code.upper()
-            code_entries.append((c_full.lower(), mobj))
-            b = base_code(c_full)
-            if b and b.lower() != c_full.lower():
-                code_entries.append((b.lower(), mobj))
-            c_no_region = c_full.split('/')[0]
-            c_no_sm = c_no_region.replace('SM-', '')
-            if c_no_sm:
-                code_entries.append((c_no_sm.lower(), mobj))
-            m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
-            code_body = m2.group(1) if m2 else c_no_region
-            code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
-            if code_body_nosuf:
-                code_entries.append((code_body_nosuf.lower(), mobj))
-            mnum = re.search(r"(\d{3,4})", code_body)
-            if mnum:
-                add_tail_map(mnum.group(1), mobj)
-        if mobj.model_name:
-            name_entries.append((mobj.model_name.strip().lower(), mobj))
-
-    def detect_for_text(text: str):
-        t = (text or "").lower()
-        for pat, sm in sorted(code_entries, key=lambda x: len(x[0]), reverse=True):
-            if pat and pat in t:
-                return sm
-        for nm, sm in sorted(name_entries, key=lambda x: len(x[0]), reverse=True):
-            if nm and nm in t:
-                return sm
-        for mnd in re.finditer(r"\d{3,4}", t):
-            num = mnd.group(0)
-            cands = tail_to_models.get(num)
-            if not cands:
-                continue
-            if len(cands) == 1:
-                return cands[0]
-            idx = mnd.start()
-            prev = t[idx - 1] if idx - 1 >= 0 else ''
-            if prev and prev.isalpha():
-                for cand in cands:
-                    cc = (cand.model_code or '').upper().split('/')[0]
-                    mlead = re.match(r"^(?:SM-)?([A-Z])", cc)
-                    lead = mlead.group(1).lower() if mlead else ''
-                    if lead and lead == prev:
-                        return cand
-            priority = {"highend": 4, "tab": 3, "wearable": 2, "midend": 1, "lowend": 0}
-            cands_sorted = sorted(cands, key=lambda x: priority.get(getattr(x, 'category', None) or '', 0), reverse=True)
-            return cands_sorted[0]
-        return None
-
+    # Optimized device count: apply same SQL prefilter patterns and use COUNT(*)
     dev = (device or '').strip().lower()
-    total = 0
-    for p in query.all():
-        base_text = f"{p.code} {p.description}"
-        smatch = detect_for_text(base_text)
-        name = (getattr(smatch, 'model_name', None) or '').strip()
-        code = (getattr(smatch, 'model_code', None) or '').strip()
-        key = f"{name}||{code}".lower()
-        if key == dev:
-            total += 1
+    name_lc, code_lc = None, None
+    if '||' in dev:
+        parts_key = dev.split('||', 1)
+        name_lc = parts_key[0] or None
+        code_lc = parts_key[1] or None
+    else:
+        code_lc = dev
 
+    model_obj = None
+    if code_lc:
+        model_obj = db.query(SamsungModelORM).filter(SamsungModelORM.model_code.ilike(code_lc)).first()
+    if not model_obj and name_lc:
+        model_obj = db.query(SamsungModelORM).filter(SamsungModelORM.model_name.ilike(name_lc)).first()
+
+    patterns = set()
+    def add(p: Optional[str]):
+        if p:
+            patterns.add(p.lower())
+
+    def build_patterns_from_code(c_full: str):
+        c_full_u = (c_full or '').upper()
+        add(c_full_u)
+        c_no_region = c_full_u.split('/')[0]
+        add(c_no_region)
+        c_no_sm = c_no_region.replace('SM-', '')
+        add(c_no_sm)
+        m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
+        code_body = m2.group(1) if m2 else c_no_region
+        add(code_body)
+        code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
+        add(code_body_nosuf)
+        mnum = re.search(r"(\d{3,4})", code_body)
+        if mnum:
+            tail = mnum.group(1)
+            mlead = re.match(r"^(?:SM-)?([A-Z])", c_no_region)
+            lead = mlead.group(1) if mlead else ''
+            if lead:
+                add(f"{lead}{tail}")
+                add(f"SM-{lead}{tail}")
+
+    if model_obj and getattr(model_obj, 'model_code', None):
+        build_patterns_from_code(model_obj.model_code)
+    elif code_lc:
+        build_patterns_from_code(code_lc)
+    if model_obj and getattr(model_obj, 'model_name', None):
+        add(model_obj.model_name)
+    elif name_lc:
+        add(name_lc)
+
+    if patterns:
+        device_filters = []
+        for p in patterns:
+            like = f"%{p}%"
+            device_filters.append(PartModel.code.ilike(like))
+            device_filters.append(PartModel.description.ilike(like))
+        query = query.filter(or_(*device_filters))
+
+    total = query.count()
     return {"total": int(total)}
 
 
@@ -1292,3 +1334,155 @@ async def calculate_price(payload: PriceCalculation, db: Session = Depends(get_d
         formula_class=formula.class_name,
         labor_level_used=labor_level_used or str(payload.labor_level or '')
     )
+
+
+@app.get("/parts/device-options")
+async def get_device_options(
+    search: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    max_items: int = Query(500, ge=1, le=5000),
+    db: Session = Depends(get_db)
+):
+    """Return distinct detected Samsung device options (model name/code) for dropdowns.
+    Applies lightweight part filtering (search/status) server-side and performs the
+    same Samsung detection heuristic used in /parts, but only returns unique
+    (model_name, model_code) pairs, greatly reducing payload size vs fetching all parts.
+    """
+    # Base query limited to needed columns only
+    query = db.query(PartModel.code, PartModel.description)
+
+    if search:
+        s = (search or "").strip()
+        filters = []
+        filters.append(PartModel.code.ilike(f"%{s}%"))
+        filters.append(PartModel.description.ilike(f"%{s}%"))
+        s_norm = re.sub(r"[^A-Za-z0-9]+", "", s).upper()
+        if s_norm and s_norm != s:
+            filters.append(PartModel.code.ilike(f"%{s_norm}%"))
+            filters.append(PartModel.description.ilike(f"%{s_norm}%"))
+        for m in re.finditer(r"\d{3,4}", s):
+            tail = m.group(0)
+            filters.append(PartModel.code.ilike(f"%{tail}%"))
+            filters.append(PartModel.description.ilike(f"%{tail}%"))
+        lm = re.search(r"([A-Za-z])(\d{3,4})", s_norm or s)
+        if lm:
+            lead = lm.group(1).upper()
+            body = lm.group(2)
+            pattern = f"%{lead}{body}%"
+            filters.append(PartModel.code.ilike(pattern))
+            filters.append(PartModel.description.ilike(pattern))
+        query = query.filter(or_(*filters))
+
+    if status:
+        query = query.filter(PartModel.status == status)
+
+    # Preload Samsung models and build detection indices (mirrors logic in /parts)
+    sams = db.query(SamsungModelORM).all()
+
+    def base_code(code: Optional[str]) -> Optional[str]:
+        if not code:
+            return None
+        c = code.split('/')[0]
+        m = re.match(r"^([A-Z]{2}-[A-Z0-9]*?\d+)", c, re.IGNORECASE)
+        return m.group(1).upper() if m else c.upper()
+
+    code_entries = []  # (pattern_lower, model)
+    name_entries = []  # (name_lower, model)
+    tail_to_models = {}
+
+    def add_tail_map(key: str, model):
+        if not key:
+            return
+        tail_to_models.setdefault(key, []).append(model)
+
+    for mobj in sams:
+        if mobj.model_code:
+            c_full = mobj.model_code.upper()
+            code_entries.append((c_full.lower(), mobj))
+            b = base_code(c_full)
+            if b and b.lower() != c_full.lower():
+                code_entries.append((b.lower(), mobj))
+            c_no_region = c_full.split('/')[0]
+            c_no_sm = c_no_region.replace('SM-', '')
+            if c_no_sm and c_no_sm.lower() not in [p for p, _ in code_entries]:
+                code_entries.append((c_no_sm.lower(), mobj))
+            m2 = re.match(r"^[A-Z]{1,2}-(\w+)$", c_no_region)
+            code_body = m2.group(1) if m2 else c_no_region
+            code_body_nosuf = re.sub(r"[A-Z]$", "", code_body)
+            if code_body_nosuf and code_body_nosuf.lower() not in [p for p, _ in code_entries]:
+                code_entries.append((code_body_nosuf.lower(), mobj))
+            mnum = re.search(r"(\d{3,4})", code_body)
+            if mnum:
+                add_tail_map(mnum.group(1), mobj)
+        if mobj.model_name:
+            name_entries.append((mobj.model_name.strip().lower(), mobj))
+
+    def detect_for_text(text: str):
+        t = (text or "").lower()
+        # Prefer code matches (longest first)
+        for pat, sm in sorted(code_entries, key=lambda x: len(x[0]), reverse=True):
+            if pat and pat in t:
+                return sm
+        # Fallback to name matches (longest first)
+        for nm, sm in sorted(name_entries, key=lambda x: len(x[0]), reverse=True):
+            if nm and nm in t:
+                return sm
+        # Numeric-tail fallback: detect 3-4 digit sequences like '928' in 'oled928'
+        for mnd in re.finditer(r"\d{3,4}", t):
+            num = mnd.group(0)
+            cands = tail_to_models.get(num)
+            if not cands:
+                continue
+            if len(cands) == 1:
+                return cands[0]
+            # Disambiguate by preceding letter in text (a/s/m/x/p/t/r/l/e, etc.)
+            idx = mnd.start()
+            prev = t[idx - 1] if idx - 1 >= 0 else ''
+            if prev and prev.isalpha():
+                for cand in cands:
+                    cc = (cand.model_code or '').upper().split('/')[0]
+                    mlead = re.match(r"^(?:SM-)?([A-Z])", cc)
+                    lead = mlead.group(1).lower() if mlead else ''
+                    if lead and lead == prev:
+                        return cand
+            # If still ambiguous, prefer categories in this priority: highend > tab > wearable > midend > lowend
+            priority = {"highend": 4, "tab": 3, "wearable": 2, "midend": 1, "lowend": 0}
+            cands_sorted = sorted(cands, key=lambda x: priority.get(getattr(x, 'category', None) or '', 0), reverse=True)
+            return cands_sorted[0]
+        return None
+
+    seen = set()
+    results = []
+
+    # Iterate with server-side yielding for efficiency on large tables
+    for row in query.yield_per(1000):  # row is tuple(code, description)
+        text = f"{row.code or ''} {row.description or ''}".strip()
+        if not text:
+            continue
+        smatch = detect_for_text(text)
+        if not smatch:
+            continue
+        name = (getattr(smatch, 'model_name', None) or '').strip()
+        code_val = (getattr(smatch, 'model_code', None) or '').strip()
+        if not name and not code_val:
+            continue
+        key = f"{name}||{code_val}".lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        label = name if name else code_val
+        if name and code_val and code_val not in label:
+            label = f"{name} ({code_val})"
+        results.append({
+            'key': key,
+            'label': label,
+            'model_name': name or None,
+            'model_code': code_val or None,
+            'category': getattr(smatch, 'category', None)
+        })
+        if len(results) >= max_items:
+            break
+
+    # Sort by label for stable UX
+    results.sort(key=lambda x: x['label'])
+    return results

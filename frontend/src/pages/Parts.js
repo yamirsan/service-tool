@@ -80,28 +80,15 @@ const Parts = () => {
   const parts = data?.items ?? [];
   const hasNext = data?.hasNext ?? false;
 
-  // Build device options from ALL matching parts across filters (not just current page)
+  // Build device options using optimized backend endpoint
   const fetchDeviceOptions = useCallback(async () => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.append('search', debouncedSearch);
     if (statusFilter) params.append('status', statusFilter);
-    params.append('skip', '0');
-    params.append('limit', '50000');
-    const res = await axios.get(`${API}/parts/?${params.toString()}`);
+    // limit handled server-side (default 500)
+    const res = await axios.get(`${API}/parts/device-options?${params.toString()}`);
     const items = Array.isArray(res.data) ? res.data : [];
-    const seen = new Set();
-    const opts = [];
-    items.forEach((p) => {
-      const name = (p.samsung_match_name || '').trim();
-      const code = (p.samsung_match_code || '').trim();
-      if (!name && !code) return;
-      const key = `${name}||${code}`.toLowerCase();
-      if (seen.has(key)) return;
-      seen.add(key);
-      const label = name ? (code ? `${name} (${code})` : name) : code;
-      opts.push({ key, label });
-    });
-    return opts.sort((a, b) => a.label.localeCompare(b.label));
+    return items.map(item => ({ key: item.key, label: item.label }));
   }, [debouncedSearch, statusFilter]);
 
   const { data: deviceOptions = [], isFetching: isFetchingDevices } = useQuery(
