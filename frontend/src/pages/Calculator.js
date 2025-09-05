@@ -292,6 +292,15 @@ const PriceCalculator = () => {
   };
   const removeManualMap = (idx) => setManualMaps(manualMaps.filter((_, i) => i !== idx));
 
+  // New: clear all selected parts & manual MAP inputs
+  const clearPartAndMapInputs = () => {
+    setSelectedParts([{ partId: '', qty: 1 }]);
+    setManualMaps([]);
+    setCalcCustomer(null);
+    setCalcDealer(null);
+    toast.success('Inputs cleared');
+  };
+
   // Totals
   const partsTotalMap = useMemo(() => selectedParts.reduce((sum, sp) => {
     const p = findPart(sp.partId);
@@ -495,6 +504,9 @@ const PriceCalculator = () => {
                     </button>
                     <button type="button" onClick={addManualMap} className="inline-flex items-center px-4 py-2 text-xs md:text-sm font-medium rounded-xl text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-gray-800/70 border border-amber-200 dark:border-amber-600/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all shadow-sm hover:shadow">
                       <Plus className="h-4 w-4 mr-2" /> Add MAP
+                    </button>
+                    <button type="button" onClick={clearPartAndMapInputs} className="inline-flex items-center px-4 py-2 text-xs md:text-sm font-medium rounded-xl text-rose-600 dark:text-rose-400 bg-white/80 dark:bg-gray-800/70 border border-rose-200 dark:border-rose-600/40 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all shadow-sm hover:shadow">
+                      <Trash2 className="h-4 w-4 mr-2" /> Clear
                     </button>
                   </div>
 
