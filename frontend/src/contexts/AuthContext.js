@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-const API = process.env.REACT_APP_API_BASE || '';
+const API = process.env.REACT_APP_API_BASE || (process.env.NODE_ENV === 'production' ? 'https://service-tool-backend.onrender.com' : '');
 
 const AuthContext = createContext();
 
@@ -78,12 +78,14 @@ export const AuthProvider = ({ children }) => {
 
   // Normalize role and permissions to be case-insensitive and whitespace-tolerant
   const normalizedRole = String(user?.role ?? '').trim().toLowerCase();
-  const isAdmin = normalizedRole === 'admin';
-  const permissions = String(user?.permissions ?? '')
+  const permsList = String(user?.permissions ?? '')
     .split(',')
     .map((p) => p.trim().toLowerCase())
     .filter(Boolean);
-  const hasPermission = (perm) => isAdmin || permissions.includes(String(perm ?? '').trim().toLowerCase());
+  const baseAdmin = normalizedRole === 'admin';
+  const hasPermission = (perm) => baseAdmin || permsList.includes(String(perm ?? '').trim().toLowerCase());
+  // Treat users with manage_users as admin-equivalent for routing/UX
+  const isAdmin = baseAdmin || permsList.includes('manage_users');
 
   const value = {
     isAuthenticated,

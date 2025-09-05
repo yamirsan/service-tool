@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { Plus, Edit, Trash2, Settings, Calculator } from 'lucide-react';
-const API = process.env.REACT_APP_API_BASE || '';
+const API = process.env.REACT_APP_API_BASE || (process.env.NODE_ENV === 'production' ? 'https://service-tool-backend.onrender.com' : '');
 
 // Helper to format margin percent consistently (accepts 0.03 or 3 -> '3%')
 const formatMarginPct = (v) => {

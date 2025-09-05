@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Plus, Trash2, Save } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
-const API = process.env.REACT_APP_API_BASE || '';
+const API = process.env.REACT_APP_API_BASE || (process.env.NODE_ENV === 'production' ? 'https://service-tool-backend.onrender.com' : '');
 
 const authHeaders = () => {
   const token = localStorage.getItem('token');

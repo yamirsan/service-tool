@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { Search, Filter, Plus, Edit, Trash2, Package, Wrench, Smartphone, ChevronLeft, ChevronRight } from 'lucide-react';
 import { FixedSizeList as List } from 'react-window';
 import { useAuth } from '../contexts/AuthContext';
-const API = process.env.REACT_APP_API_BASE || '';
+const API = process.env.REACT_APP_API_BASE || (process.env.NODE_ENV === 'production' ? 'https://service-tool-backend.onrender.com' : '');
 
 // Helper: debounce hook
 function useDebouncedValue(value, delay = 300) {

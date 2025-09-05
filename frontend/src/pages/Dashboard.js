@@ -3,6 +3,8 @@ import { useQuery } from 'react-query';
 import axios from 'axios';
 import { Package, Calculator, TrendingUp, Database, Sparkles, Clock, AlertTriangle } from 'lucide-react';
 
+const API = process.env.REACT_APP_API_BASE || (process.env.NODE_ENV === 'production' ? 'https://service-tool-backend.onrender.com' : '');
+
 // Helper to format margin percent consistently (accepts 0.03 or 3 -> '3%')
 const formatMarginPct = (v) => {
   if (v === null || v === undefined || v === '') return '0%';
@@ -14,11 +16,11 @@ const formatMarginPct = (v) => {
 
 const Dashboard = () => {
   const { data: parts = [] } = useQuery('parts', () =>
-    axios.get('/parts/?limit=10000').then(res => res.data)
+    axios.get(`${API}/parts/?limit=10000`).then(res => res.data)
   );
 
   const { data: formulas = [] } = useQuery('formulas', () =>
-    axios.get('/formulas/').then(res => res.data)
+    axios.get(`${API}/formulas/`).then(res => res.data)
   );
 
   const totalParts = parts.length;
