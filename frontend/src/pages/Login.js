@@ -5,7 +5,7 @@ import toast from 'react-hot-toast';
 import { LogIn, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
@@ -14,7 +14,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
 
   if (isAuthenticated) {
-    const redirectTo = location.state?.from?.pathname || '/';
+    const redirectTo = isAdmin ? '/' : (location.state?.from?.pathname || '/');
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -31,8 +31,12 @@ const Login = () => {
     
     if (result.success) {
       toast.success('Login successful!');
-      const redirectTo = location.state?.from?.pathname || '/';
-      navigate(redirectTo, { replace: true });
+      const from = location.state?.from?.pathname;
+      if (String(result.user?.role || '').toLowerCase() === 'admin') {
+        navigate('/', { replace: true });
+      } else {
+        navigate(from || '/', { replace: true });
+      }
     } else {
       toast.error(result.error || 'Login failed');
     }

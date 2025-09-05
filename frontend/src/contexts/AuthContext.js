@@ -22,10 +22,12 @@ export const AuthProvider = ({ children }) => {
       const res = await axios.get(`${API}/me`);
       setUser(res.data);
       setIsAuthenticated(true);
+      return res.data; // return profile so callers can use it
     } catch (e) {
       // token invalid
       setIsAuthenticated(false);
       setUser(null);
+      return null;
     }
   };
 
@@ -56,8 +58,8 @@ export const AuthProvider = ({ children }) => {
       const { access_token } = response.data;
       localStorage.setItem('token', access_token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-      await fetchProfile();
-      return { success: true };
+      const profile = await fetchProfile();
+      return { success: true, user: profile };
     } catch (error) {
       console.error('Login error:', error);
       return { 

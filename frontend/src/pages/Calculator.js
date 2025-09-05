@@ -303,14 +303,18 @@ const PriceCalculator = () => {
 
   const displayTotalMap = partsTotalMap + manualTotalMap;
 
+  // Allow labor-only for Level 1 and Level 3
+  const allowLaborOnly = laborLevel === '1' || laborLevel === 1 || laborLevel === '3' || laborLevel === 3;
+
   const handleCalculate = async () => {
     if (!selectedFormula) {
       toast.error('Please select a formula');
       return;
     }
 
-    if (!(displayTotalMap > 0)) {
-      toast.error('Add parts or manual MAP');
+    // Allow labor-only calculation for levels 1 and 3 even when no parts/MAP are selected
+    if (!(displayTotalMap > 0) && !allowLaborOnly) {
+      toast.error('Add parts or manual MAP (or choose Labor 1 or 3 for labor-only)');
       return;
     }
 
@@ -692,7 +696,7 @@ const PriceCalculator = () => {
             <div className="mt-6 text-center">
               <button
                 onClick={handleCalculate}
-                disabled={(!selectedFormula) || (displayTotalMap <= 0) || isCalculating}
+                disabled={(!selectedFormula) || (!allowLaborOnly && displayTotalMap <= 0) || isCalculating}
                 className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isCalculating ? (
