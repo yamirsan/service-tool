@@ -349,15 +349,15 @@ const PriceCalculator = () => {
   // Color helpers for part code
   const getPartCodeClass = (part) => {
     const text = `${part?.code || ''} ${part?.description || ''}`.toUpperCase();
-    if (text.includes('LCD')) return 'text-blue-600';
-    if (text.includes('PBA')) return 'text-purple-600';
-    return 'text-gray-900';
+    if (text.includes('LCD')) return 'text-blue-600 dark:text-blue-400';
+    if (text.includes('PBA')) return 'text-purple-600 dark:text-purple-400';
+    return 'text-gray-900 dark:text-gray-200';
   };
   const getCodeClass = (code) => {
     const text = (code || '').toString().toUpperCase();
-    if (text.includes('LCD')) return 'text-blue-600';
-    if (text.includes('PBA')) return 'text-purple-600';
-    return 'text-gray-900';
+    if (text.includes('LCD')) return 'text-blue-600 dark:text-blue-400';
+    if (text.includes('PBA')) return 'text-purple-600 dark:text-purple-400';
+    return 'text-gray-900 dark:text-gray-200';
   };
   // New: category badge styles
   const categoryBadge = (cat) => {
@@ -390,65 +390,66 @@ const PriceCalculator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="max-w-screen-2xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background layers */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 transition-colors" />
+      <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(circle_at_15%_20%,rgba(99,102,241,0.35),transparent_55%),radial-gradient(circle_at_85%_80%,rgba(168,85,247,0.35),transparent_55%)]" />
+      <div className="relative max-w-screen-2xl mx-auto py-10 px-4 sm:px-6 lg:px-10">
         {/* Header */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="text-center">
-            <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-primary-100 mb-4">
-              <Calculator className="h-6 w-6 text-primary-600" />
-            </div>
-            <h1 className="text-3xl font-extrabold bg-gradient-to-r from-primary-700 via-pink-600 to-violet-700 bg-clip-text text-transparent">Price Calculator</h1>
-            <p className="mt-2 text-gray-700">Calculate final pricing with labor costs and exchange rates</p>
+        <div className="text-center mb-12">
+          <div className="mx-auto h-20 w-20 flex items-center justify-center rounded-3xl bg-gradient-to-r from-indigo-500 to-purple-600 shadow-xl shadow-indigo-300/40 mb-6 ring-2 ring-white/50">
+            <Calculator className="h-10 w-10 text-white" />
           </div>
+          <h1 className="text-5xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Price Calculator</h1>
+          <p className="mt-4 text-slate-600 dark:text-slate-400 text-lg max-w-2xl mx-auto">Calculate final pricing with intelligent labor costs and real-time exchange rates</p>
         </div>
 
-        {/* Calculator Form */}
-        <div className="px-4 sm:px-0">
-          <div className="bg-white/90 backdrop-blur rounded-lg shadow border border-gray-100 p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-y-8 gap-x-10 items-start">
+        {/* Main Card Frame */}
+        <div className="p-[3px] rounded-3xl bg-gradient-to-br from-indigo-400/60 via-fuchsia-400/50 to-pink-400/60 shadow-2xl shadow-indigo-200/50 dark:shadow-none">
+          <div className="bg-white/80 dark:bg-gray-900/70 backdrop-blur-2xl rounded-[inherit] p-8 lg:p-10 transition-colors">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-10 items-start">
               {/* Part Selection */}
-              <div className="space-y-4 bg-gray-50 rounded-lg p-4 lg:col-span-2">
-                <h3 className="text-lg font-medium text-gray-900">Select Parts</h3>
-                
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+              <div className="space-y-7 bg-gradient-to-br from-white/70 to-indigo-50/60 dark:from-gray-900/60 dark:to-gray-800/40 rounded-2xl p-6 lg:col-span-2 border border-slate-300/80 dark:border-slate-600/80 ring-1 ring-white/60 dark:ring-gray-900/40 shadow-inner">
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 flex items-center">
+                  <span className="p-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 text-white mr-3 shadow-md shadow-indigo-300/40"><Puzzle className="h-5 w-5" /></span>
+                  Parts & MAP Inputs
+                </h3>
+
+                <div className="relative group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
                   <input
                     type="text"
-                    placeholder="Search parts..."
-                    className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    placeholder="Search parts by code or text..."
+                    className="pl-12 w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/70 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 text-gray-900 dark:text-gray-100"
                     value={partSearch}
                     onChange={(e) => setPartSearch(e.target.value)}
                   />
                 </div>
 
-                {/* Device filter: show only selected device's parts */}
                 <div className="relative">
-                  <Smartphone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
                   <select
-                    className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                    className="pl-12 w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/70 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm appearance-none shadow-sm text-gray-900 dark:text-gray-100"
                     value={deviceFilter}
                     onChange={(e) => setDeviceFilter(e.target.value)}
                   >
                     <option value="">All Devices</option>
                     {deviceOptions.map((opt) => (
-                      <option key={opt.key} value={opt.key}>
-                        {opt.label}
-                      </option>
+                      <option key={opt.key} value={opt.key}>{opt.label}</option>
                     ))}
                   </select>
                 </div>
 
-                {/* Dynamic rows */}
-                <div className="bg-white p-3 rounded-lg border border-gray-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-medium text-gray-900">Selected Items</h4>
-                    <label className="flex items-center gap-2 text-xs text-gray-600">
-                      <input type="checkbox" checked={autoAddKits} onChange={(e) => setAutoAddKits(e.target.checked)} />
-                      Auto add OLED repair kits (same model)
+                <div className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-xl p-5 rounded-xl border border-slate-200/60 dark:border-slate-700 shadow">
+                  <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <h4 className="font-semibold text-slate-800 dark:text-slate-200">Selected Items</h4>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-100/80 dark:bg-gray-800/80 px-3 py-1 rounded-full">
+                      <input type="checkbox" checked={autoAddKits} onChange={(e) => setAutoAddKits(e.target.checked)} className="rounded border-slate-300 dark:border-slate-600 text-indigo-600 focus:ring-indigo-500" />
+                      Auto add kits
                     </label>
                   </div>
-                  <div className="space-y-2">
+
+                  <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1 custom-scroll">
                     {selectedParts.map((sp, idx) => {
                       const p = findPart(sp.partId);
                       const base = (p?.map_price ?? p?.net_price ?? 0) || 0;
@@ -456,38 +457,31 @@ const PriceCalculator = () => {
                       const rowTotal = Number(base) * qty;
                       const hasPart = sp.partId !== '' && sp.partId !== null && sp.partId !== undefined;
                       return (
-                        <div key={idx} className="flex flex-wrap items-center gap-2 text-sm min-w-0">
+                        <div key={idx} className="flex flex-wrap items-center gap-2 text-xs md:text-sm min-w-0 bg-slate-50/70 dark:bg-gray-800/50 rounded-lg p-2 border border-slate-200/60 dark:border-slate-700">
                           <select
-                            className="grow min-w-[220px] border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                            className="grow min-w-[220px] border border-slate-300 dark:border-slate-600 rounded-md px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent bg-white/70 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100"
                             value={hasPart ? sp.partId : ''}
                             onChange={(e) => updateRowPart(idx, e.target.value)}
                           >
                             <option value="">Select a part...</option>
                             {filteredParts.map((part) => (
-                              <option key={part.id} value={part.id}>
-                                {part.code} - {part.description}
-                              </option>
+                              <option key={part.id} value={part.id}>{part.code} - {part.description}</option>
                             ))}
                           </select>
                           {hasPart && (
-                            <span
-                              className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${categoryBadge(p?.samsung_category)} shrink-0`}
-                              title="Samsung category"
-                            >
-                              {p?.samsung_category || '-'}
-                            </span>
+                            <span className={`inline-flex px-2 py-1 rounded-full text-[10px] font-semibold ${categoryBadge(p?.samsung_category)} shrink-0`}>{p?.samsung_category || '-'}</span>
                           )}
-                          <label className="text-gray-600 shrink-0">Qty</label>
+                          <span className="text-slate-500 dark:text-slate-400">Qty</span>
                           <input
                             type="number"
                             min={1}
                             value={sp.qty}
                             onChange={(e) => updateRowQty(idx, e.target.value)}
-                            className="w-16 border border-gray-300 rounded-md px-2 py-1"
+                            className="w-16 border border-slate-300 dark:border-slate-600 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent bg-white/70 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100"
                           />
-                          <span className="text-gray-600 whitespace-nowrap shrink-0">x ${Number(base).toFixed(2)}</span>
-                          <span className="font-medium whitespace-nowrap shrink-0">= ${rowTotal.toFixed(2)}</span>
-                          <button onClick={() => removePartRow(idx)} className="text-red-600 hover:text-red-800 ml-auto">
+                          <span className="text-slate-500 dark:text-slate-400 whitespace-nowrap">x ${Number(base).toFixed(2)}</span>
+                          <span className="font-medium whitespace-nowrap text-slate-800 dark:text-slate-200">= ${rowTotal.toFixed(2)}</span>
+                          <button type="button" onClick={() => removePartRow(idx)} className="text-red-500/80 hover:text-red-600 dark:hover:text-red-400 ml-auto">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -495,38 +489,30 @@ const PriceCalculator = () => {
                     })}
                   </div>
 
-                  <div className="mt-3 flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={addPartRow}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-primary-600 bg-white border border-primary-600 hover:bg-primary-50"
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add another row
+                  <div className="mt-5 flex flex-wrap items-center gap-3">
+                    <button type="button" onClick={addPartRow} className="inline-flex items-center px-4 py-2 text-xs md:text-sm font-medium rounded-xl text-indigo-600 dark:text-indigo-400 bg-white/80 dark:bg-gray-800/70 border border-indigo-200 dark:border-indigo-600/40 hover:bg-indigo-50 dark:hover:bg-indigo-500/10 transition-all shadow-sm hover:shadow">
+                      <Plus className="h-4 w-4 mr-2" /> Add Row
                     </button>
-                    <button
-                      type="button"
-                      onClick={addManualMap}
-                      className="inline-flex items-center px-3 py-2 text-sm font-medium rounded-md text-amber-700 bg-white border border-amber-400 hover:bg-amber-50"
-                    >
-                      <Plus className="h-4 w-4 mr-1" /> Add MAP
+                    <button type="button" onClick={addManualMap} className="inline-flex items-center px-4 py-2 text-xs md:text-sm font-medium rounded-xl text-amber-600 dark:text-amber-400 bg-white/80 dark:bg-gray-800/70 border border-amber-200 dark:border-amber-600/40 hover:bg-amber-50 dark:hover:bg-amber-500/10 transition-all shadow-sm hover:shadow">
+                      <Plus className="h-4 w-4 mr-2" /> Add MAP
                     </button>
                   </div>
 
                   {manualMaps.length > 0 && (
-                    <div className="mt-3 space-y-2">
+                    <div className="mt-4 space-y-2">
                       {manualMaps.map((val, idx) => (
-                        <div key={idx} className="flex items-center gap-2">
-                          <label className="w-20 text-sm text-gray-700">MAP {idx + 1}</label>
+                        <div key={idx} className="flex items-center gap-2 text-xs md:text-sm bg-slate-50/70 dark:bg-gray-800/50 p-2 rounded-lg border border-slate-200/60 dark:border-slate-700">
+                          <label className="w-20 text-slate-600 dark:text-slate-400 font-medium">MAP {idx + 1}</label>
                           <input
                             type="number"
                             min={0}
                             step={0.01}
                             value={val}
                             onChange={(e) => updateManualMap(idx, e.target.value)}
-                            className="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                            className="flex-1 border border-slate-300 dark:border-slate-600 rounded-md px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent bg-white/70 dark:bg-gray-800/70 text-gray-900 dark:text-gray-100"
                             placeholder="0.00"
                           />
-                          <button type="button" onClick={() => removeManualMap(idx)} className="text-red-600 hover:text-red-800">
+                          <button type="button" onClick={() => removeManualMap(idx)} className="text-red-500/80 hover:text-red-600 dark:hover:text-red-400">
                             <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
@@ -534,58 +520,55 @@ const PriceCalculator = () => {
                     </div>
                   )}
 
-                  <div className="mt-2 text-right text-sm">
-                    <span className="text-gray-600">Parts MAP: </span>
-                    <span className="font-medium mr-4">${partsTotalMap.toFixed(2)}</span>
-                    <span className="text-gray-600">Manual MAP: </span>
-                    <span className="font-medium mr-4">${manualTotalMap.toFixed(2)}</span>
-                    <span className="text-gray-600">Total MAP (USD): </span>
-                    <span className="font-semibold">${displayTotalMap.toFixed(2)}</span>
+                  <div className="mt-4 text-right text-xs md:text-sm leading-5 font-medium bg-slate-100/60 dark:bg-gray-800/60 rounded-lg p-3">
+                    <div className="flex flex-wrap justify-end gap-x-4 gap-y-1">
+                      <span className="text-slate-500 dark:text-slate-400">Parts MAP: <span className="text-slate-800 dark:text-slate-200">${partsTotalMap.toFixed(2)}</span></span>
+                      <span className="text-slate-500 dark:text-slate-400">Manual MAP: <span className="text-slate-800 dark:text-slate-200">${manualTotalMap.toFixed(2)}</span></span>
+                      <span className="text-slate-500 dark:text-slate-400">Total MAP: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">${displayTotalMap.toFixed(2)}</span></span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Right Panel: Formula + Results */}
-              <div className="space-y-5 bg-gray-50 rounded-lg p-4 lg:col-span-3">
-                <h3 className="text-lg font-medium text-gray-900">Select Formula & Labor Level</h3>
-                
-                {/* Top row: selects on the left, results on the right */}
-                <div className="grid grid-cols-1 md:grid-cols-4 md:gap-6 gap-4 items-start">
-                  {/* Left: Selects */}
-                  <div className="space-y-4 md:col-span-1">
+              {/* Formula & Results */}
+              <div className="space-y-7 bg-gradient-to-br from-white/70 to-fuchsia-50/60 dark:from-gray-900/60 dark:to-gray-800/40 rounded-2xl p-6 lg:col-span-3 border border-slate-300/80 dark:border-slate-600/80 ring-1 ring-white/60 dark:ring-gray-900/40 shadow-inner">
+                <h3 className="text-xl font-semibold text-slate-800 dark:text-slate-200 flex items-center">
+                  <span className="p-2 rounded-lg bg-gradient-to-r from-purple-500 to-pink-600 text-white mr-3 shadow-md shadow-purple-300/40"><DollarSign className="h-5 w-5" /></span>
+                  Formula & Calculation
+                </h3>
+
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
+                  <div className="space-y-5 md:col-span-1">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Formula</label>
+                      <label className="block text-xs font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400 mb-2">Formula</label>
                       <select
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm appearance-none shadow-sm text-gray-900 dark:text-gray-100"
                         value={selectedFormula}
                         onChange={(e) => { setSelectedFormula(e.target.value); setAutoFormula(false); }}
                       >
                         <option value="">Select a formula...</option>
                         {formulas.map((formula) => (
-                          <option key={formula.id} value={formula.id}>
-                            {formula.class_name}
-                          </option>
+                          <option key={formula.id} value={formula.id}>{formula.class_name}</option>
                         ))}
                       </select>
-                      {/* Auto formula helper */}
-                      <div className="mt-1 text-xs text-gray-600 flex items-center gap-2">
+                      <div className="mt-2 text-[11px] text-slate-600 dark:text-slate-400 flex flex-wrap items-center gap-2">
                         {autoFormula ? (
                           <>
-                            <span>Use auto based on detected category{autoDetectedCategory ? ` (${autoDetectedCategory})` : ''}</span>
-                            <button type="button" className="text-primary-600 underline" onClick={() => setAutoFormula(false)}>Switch to manual</button>
+                            <span className="px-2 py-0.5 rounded bg-slate-200/60 dark:bg-gray-700 text-slate-700 dark:text-slate-300">Auto: {autoDetectedCategory || '—'}</span>
+                            <button type="button" className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 underline" onClick={() => setAutoFormula(false)}>Manual</button>
                           </>
                         ) : (
-                          <button type="button" className="text-primary-600 underline" onClick={() => { setAutoFormula(true); }}>
-                            Use auto based on detected category
+                          <button type="button" className="text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 underline" onClick={() => { setAutoFormula(true); }}>
+                            Use auto-detect
                           </button>
                         )}
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Labor Level</label>
+                      <label className="block text-xs font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400 mb-2">Labor Level</label>
                       <select
-                        className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                        className="w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm appearance-none shadow-sm text-gray-900 dark:text-gray-100"
                         value={laborLevel}
                         onChange={(e) => setLaborLevel(e.target.value)}
                       >
@@ -597,121 +580,84 @@ const PriceCalculator = () => {
                     </div>
                   </div>
 
-                  {/* Right: Calculation Results (compact, sticky, wider) */}
                   {(calcCustomer || calcDealer) && (
-                    <div className="md:col-span-3 bg-white p-4 rounded-lg border border-gray-200 shadow-sm md:sticky md:top-2">
-                      <div className="flex items-center mb-3">
-                        <DollarSign className="h-5 w-5 text-green-600 mr-2" />
-                        <h4 className="text-sm font-semibold text-gray-900">Price Calculation Results</h4>
+                    <div className="md:col-span-3 bg-white/85 dark:bg-gray-900/60 backdrop-blur-xl p-6 rounded-2xl border border-slate-300/80 dark:border-slate-600/80 ring-1 ring-white/50 dark:ring-gray-900/40 shadow-md space-y-4 transition-colors">
+                      <div className="flex items-center">
+                        <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg mr-3 shadow-md shadow-emerald-300/40">
+                          <DollarSign className="h-5 w-5 text-white" />
+                        </div>
+                        <h4 className="text-lg font-semibold text-slate-800 dark:text-slate-200">Calculation Results</h4>
                       </div>
-
-                      {/* Common Info */}
-                      <dl className="divide-y divide-gray-100 text-sm">
-                        <div className="py-1.5 grid grid-cols-2 gap-2">
-                          <dt className="text-gray-600">Formula Class</dt>
-                          <dd className="text-right font-medium">{(calcCustomer || calcDealer)?.formula_class}</dd>
+                      <dl className="grid grid-cols-2 gap-3 text-xs md:text-sm">
+                        <div className="bg-slate-50/70 dark:bg-gray-800/60 rounded-md p-2 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                          <dt className="text-slate-500 dark:text-slate-400">Formula Class</dt>
+                          <dd className="font-medium text-slate-800 dark:text-slate-200 mt-0.5">{(calcCustomer || calcDealer)?.formula_class}</dd>
                         </div>
-                        <div className="py-1.5 grid grid-cols-2 gap-2">
-                          <dt className="text-gray-600">Labor Level Used</dt>
-                          <dd className="text-right font-medium">{(calcCustomer || calcDealer)?.labor_level_used}</dd>
+                        <div className="bg-slate-50/70 dark:bg-gray-800/60 rounded-md p-2 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                          <dt className="text-slate-500 dark:text-slate-400">Labor Level</dt>
+                          <dd className="font-medium text-slate-800 dark:text-slate-200 mt-0.5">{(calcCustomer || calcDealer)?.labor_level_used}</dd>
                         </div>
-                        <div className="py-1.5 grid grid-cols-2 gap-2">
-                          <dt className="text-gray-600">Exchange Rate</dt>
-                          <dd className="text-right font-medium">{(calcCustomer || calcDealer)?.exchange_rate}</dd>
+                        <div className="bg-slate-50/70 dark:bg-gray-800/60 rounded-md p-2 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                          <dt className="text-slate-500 dark:text-slate-400">Exchange Rate</dt>
+                          <dd className="font-medium text-slate-800 dark:text-slate-200 mt-0.5">{(calcCustomer || calcDealer)?.exchange_rate}</dd>
+                        </div>
+                        <div className="bg-slate-50/70 dark:bg-gray-800/60 rounded-md p-2 border border-slate-200/60 dark:border-slate-700 flex flex-col">
+                          <dt className="text-slate-500 dark:text-slate-400">Total MAP</dt>
+                          <dd className="font-medium text-slate-800 dark:text-slate-200 mt-0.5">${displayTotalMap.toFixed(2)}</dd>
                         </div>
                       </dl>
-
-                      {/* Two-column results */}
-                      <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {calcCustomer && (
-                          <div className="border rounded-md p-3 bg-gray-50">
-                            <h5 className="text-sm font-semibold mb-2">Customer</h5>
-                            <dl className="text-sm">
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Base Price (MAP)</dt>
-                                <dd className="text-right font-medium">${calcCustomer.total_map.toFixed(2)}</dd>
-                              </div>
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Labor Cost</dt>
-                                <dd className="text-right font-medium">${calcCustomer.labor_cost.toFixed(2)}</dd>
-                              </div>
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Margin (USD)</dt>
-                                <dd className="text-right font-medium">${calcCustomer.margin.toFixed(2)}</dd>
-                              </div>
-                              <div className="pt-2 mt-1 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-900 font-semibold">Final Price (USD)</dt>
-                                <dd className="text-right font-semibold text-green-600">${calcCustomer.final_price_usd.toFixed(2)}</dd>
-                              </div>
-                              <div className="pb-2 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-900 font-semibold">Final Price (IQD)</dt>
-                                <dd className="text-right font-bold text-green-600">{calcCustomer.final_price_iqd.toLocaleString()} IQD</dd>
-                              </div>
-                            </dl>
-                            <div className="mt-2 p-2 bg-white rounded text-xs text-gray-600">
-                              (Total MAP: ${calcCustomer.total_map.toFixed(2)} + Labor: ${calcCustomer.labor_cost.toFixed(2)} + Margin: ${calcCustomer.margin.toFixed(2)}) × Rate: {calcCustomer.exchange_rate} = {calcCustomer.final_price_iqd.toLocaleString()} IQD
-                            </div>
+                          <div className="rounded-xl border border-slate-300/80 dark:border-slate-600/80 ring-1 ring-white/50 dark:ring-gray-900/40 bg-gradient-to-br from-white/90 to-green-50/70 dark:from-gray-900/70 dark:to-emerald-900/20 p-4 shadow-inner space-y-1 text-xs md:text-sm transition-colors">
+                            <h5 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Customer</h5>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Base MAP</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcCustomer.total_map.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Labor</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcCustomer.labor_cost.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Margin</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcCustomer.margin.toFixed(2)}</span></div>
+                            {/* Enhanced divider */}
+                            <div className="mt-2 h-[2px] rounded-full bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" />
+                            <div className="flex justify-between mt-1"><span className="font-semibold text-slate-700 dark:text-slate-300">Final (USD)</span><span className="font-semibold text-green-600 dark:text-green-400">${calcCustomer.final_price_usd.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="font-semibold text-slate-700 dark:text-slate-300">Final (IQD)</span><span className="font-bold text-green-600 dark:text-green-400">{calcCustomer.final_price_iqd.toLocaleString()} IQD</span></div>
                           </div>
                         )}
-
                         {calcDealer && (
-                          <div className="border rounded-md p-3 bg-gray-50">
-                            <h5 className="text-sm font-semibold mb-2">Dealer</h5>
-                            <dl className="text-sm">
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Base Price (MAP)</dt>
-                                <dd className="text-right font-medium">${calcDealer.total_map.toFixed(2)}</dd>
-                              </div>
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Labor Cost</dt>
-                                <dd className="text-right font-medium">${calcDealer.labor_cost.toFixed(2)}</dd>
-                              </div>
-                              <div className="py-1.5 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-600">Margin (USD)</dt>
-                                <dd className="text-right font-medium">${calcDealer.margin.toFixed(2)}</dd>
-                              </div>
-                              <div className="pt-2 mt-1 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-900 font-semibold">Final Price (USD)</dt>
-                                <dd className="text-right font-semibold text-green-600">${calcDealer.final_price_usd.toFixed(2)}</dd>
-                              </div>
-                              <div className="pb-2 grid grid-cols-2 gap-2">
-                                <dt className="text-gray-900 font-semibold">Final Price (IQD)</dt>
-                                <dd className="text-right font-bold text-green-600">{calcDealer.final_price_iqd.toLocaleString()} IQD</dd>
-                              </div>
-                            </dl>
-                            <div className="mt-2 p-2 bg-white rounded text-xs text-gray-600">
-                              (Total MAP: ${calcDealer.total_map.toFixed(2)} + Labor: ${calcDealer.labor_cost.toFixed(2)} + Margin: ${calcDealer.margin.toFixed(2)}) × Rate: {calcDealer.exchange_rate} = {calcDealer.final_price_iqd.toLocaleString()} IQD
-                            </div>
+                          <div className="rounded-xl border border-slate-300/80 dark:border-slate-600/80 ring-1 ring-white/50 dark:ring-gray-900/40 bg-gradient-to-br from-white/90 to-emerald-50/60 dark:from-gray-900/70 dark:to-emerald-900/20 p-4 shadow-inner space-y-1 text-xs md:text-sm transition-colors">
+                            <h5 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-1">Dealer</h5>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Base MAP</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcDealer.total_map.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Labor</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcDealer.labor_cost.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Margin</span><span className="font-medium text-slate-800 dark:text-slate-200">${calcDealer.margin.toFixed(2)}</span></div>
+                            {/* Enhanced divider */}
+                            <div className="mt-2 h-[2px] rounded-full bg-gradient-to-r from-transparent via-slate-300 dark:via-slate-600 to-transparent" />
+                            <div className="flex justify-between mt-1"><span className="font-semibold text-slate-700 dark:text-slate-300">Final (USD)</span><span className="font-semibold text-green-600 dark:text-green-400">${calcDealer.final_price_usd.toFixed(2)}</span></div>
+                            <div className="flex justify-between"><span className="font-semibold text-slate-700 dark:text-slate-300">Final (IQD)</span><span className="font-bold text-green-600 dark:text-green-400">{calcDealer.final_price_iqd.toLocaleString()} IQD</span></div>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
                 </div>
-
-                {/* Removed Formula Details card */}
-                {/* Removed Manual MAP section from right panel (moved to left) */}
               </div>
             </div>
 
-            {/* Calculate Button */}
-            <div className="mt-6 text-center">
+            <div className="mt-12 text-center">
               <button
                 onClick={handleCalculate}
                 disabled={(!selectedFormula) || (!allowLaborOnly && displayTotalMap <= 0) || isCalculating}
-                className="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative inline-flex items-center px-10 py-5 text-lg font-semibold rounded-2xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500/60 focus:ring-offset-2 focus:ring-offset-white dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-xl shadow-purple-300/40 dark:shadow-purple-900/40 hover:shadow-2xl hover:-translate-y-0.5 overflow-hidden"
               >
-                {isCalculating ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Calculating...
-                  </>
-                ) : (
-                  <>
-                    <Calculator className="h-5 w-5 mr-2" />
-                    Calculate Price
-                  </>
-                )}
+                <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 group_hover:from-indigo-500 group_hover:via-purple-500 group_hover:to-pink-500 transition-colors" />
+                <span className="relative flex items-center">
+                  {isCalculating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-white/70 border-t-transparent mr-3" />
+                      Calculating...
+                    </>
+                  ) : (
+                    <>
+                      <Calculator className="h-6 w-6 mr-3" />
+                      Calculate Price
+                    </>
+                  )}
+                </span>
               </button>
             </div>
           </div>

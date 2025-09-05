@@ -20,9 +20,9 @@ function useDebouncedValue(value, delay = 300) {
 // Helper: color-code part codes by prefix
 const getPartCodeClass = (code) => {
   const c = (code ?? '').toString().toUpperCase();
-  if (c.startsWith('LCD')) return 'text-blue-600';
-  if (c.startsWith('PBA')) return 'text-purple-600';
-  return 'text-gray-900';
+  if (c.startsWith('LCD')) return 'text-blue-600 dark:text-blue-400';
+  if (c.startsWith('PBA')) return 'text-purple-600 dark:text-purple-400';
+  return 'text-gray-900 dark:text-gray-200';
 };
 
 const categoryBadge = (cat) => {
@@ -214,7 +214,7 @@ const Parts = () => {
   const Row = ({ index, style, data }) => {
     const part = data[index];
     return (
-      <div style={style} className="grid grid-cols-9 items-center px-6 border-b border-gray-200 hover:bg-gray-50 text-sm">
+      <div style={style} className="grid grid-cols-9 items-center px-6 border-b border-gray-200 hover:bg-gray-50 text-sm dark:border-slate-700 dark:hover:bg-slate-800/60">
         <div className="font-medium break-all">
           <span className={getPartCodeClass(part.code)} title={part.code}>{part.code}</span>
         </div>
@@ -309,43 +309,48 @@ const Parts = () => {
   }, [totalPages]);
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div className="min-h-screen relative overflow-hidden">
+      {/* Background layers */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-50 via-indigo-50 to-purple-100 dark:from-gray-950 dark:via-gray-900 dark:to-gray-900 transition-colors" />
+      <div className="absolute inset-0 opacity-50 [background-image:radial-gradient(circle_at_15%_20%,rgba(99,102,241,0.35),transparent_55%),radial-gradient(circle_at_85%_80%,rgba(168,85,247,0.35),transparent_55%)]" />
+      <div className="relative max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="px-4 py-6 sm:px-0">
-          <div className="flex justify-between items-center">
+        <div className="mb-10">
+          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-8">
             <div>
-              <h1 className="text-3xl font-extrabold bg-gradient-to-r from-primary-700 via-pink-600 to-violet-700 bg-clip-text text-transparent flex items-center">
-                <Wrench className="h-7 w-7 mr-2 text-primary-600" />
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text text-transparent flex items-center">
+                <span className="p-3 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-2xl mr-4 shadow-xl shadow-indigo-300/40 ring-2 ring-white/50">
+                  <Wrench className="h-7 w-7 text-white" />
+                </span>
                 Parts Management
               </h1>
-              <p className="mt-2 text-gray-700">Manage your parts inventory</p>
+              <p className="mt-4 text-slate-600 dark:text-slate-400 text-base md:text-lg max-w-2xl">Streamline your inventory with intelligent part management</p>
             </div>
             {isAdmin && (
-              <div className="flex items-center space-x-2">
+              <div className="flex flex-wrap items-center gap-3">
                 <button
                   onClick={handleEmptyStockAll}
                   disabled={emptyStockMutation.isLoading || deleteAllMutation.isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-500 hover:bg-amber-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50"
-                  title="Set stock to 0 for all parts"
+                  className="group relative overflow-hidden inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl text-amber-800 bg-amber-100 hover:bg-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50 disabled:opacity-50 transition-all dark:bg-amber-500/20 dark:text-amber-300 dark:hover:bg-amber-500/30"
                 >
+                  <span className="absolute inset-0 rounded-xl bg-gradient-to-r from-amber-400/0 to-amber-500/0 group-hover:from-amber-300/30 group-hover:to-amber-400/30" />
                   Empty Stock (All)
                 </button>
                 <button
                   onClick={handleDeleteAll}
                   disabled={emptyStockMutation.isLoading || deleteAllMutation.isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                  title="Delete all parts"
+                  className="group relative overflow-hidden inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-red-500/60 disabled:opacity-50 transition-all shadow-lg shadow-red-300/40 dark:shadow-red-900/40"
                 >
-                  <Trash2 className="h-4 w-4 mr-2" /> Delete All
+                  <span className="absolute inset-0 bg-gradient-to-r from-red-600 to-rose-600 group-hover:from-red-500 group-hover:to-rose-500" />
+                  <span className="relative flex items-center"><Trash2 className="h-4 w-4 mr-2" /> Delete All</span>
                 </button>
                 <button
                   onClick={() => setShowAddModal(true)}
                   disabled={emptyStockMutation.isLoading || deleteAllMutation.isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-gradient-to-r from-primary-600 to-violet-600 hover:from-primary-700 hover:to-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                  className="group relative overflow-hidden inline-flex items-center px-5 py-2.5 text-sm font-semibold rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/60 disabled:opacity-50 transition-all shadow-lg shadow-indigo-300/40 dark:shadow-indigo-900/40"
                 >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Part
+                  <span className="absolute inset-0 bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 group-hover:from-indigo-500 group-hover:via-purple-500 group-hover:to-pink-500" />
+                  <span className="relative flex items-center"><Plus className="h-4 w-4 mr-2" /> Add Part</span>
                 </button>
               </div>
             )}
@@ -353,178 +358,117 @@ const Parts = () => {
         </div>
 
         {/* Filters */}
-        <div className="px-4 sm:px-0 mb-6">
-          <div className="bg-white/90 backdrop-blur p-4 rounded-lg shadow border">
-            <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
-              <div className="relative md:col-span-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <input
-                  type="text"
-                  placeholder="Search parts..."
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
+        <div className="mb-8">
+          <div className="p-[2px] rounded-2xl bg-gradient-to-r from-indigo-400/50 via-fuchsia-400/40 to-pink-400/50 shadow-lg shadow-indigo-200/40 dark:shadow-none">
+            <div className="bg-white/80 dark:bg-gray-900/60 backdrop-blur-xl rounded-[inherit] p-5 transition-colors">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-5 items-end">
+                <div className="relative md:col-span-2 group">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
+                  <input
+                    type="text"
+                    placeholder="Search parts..."
+                    className="pl-12 w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm shadow-sm placeholder:text-slate-400 dark:placeholder:text-slate-500 text-gray-900 dark:text-gray-100"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                  />
+                </div>
+                <div className="relative group">
+                  <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
+                  <select
+                    className="pl-12 w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm appearance-none shadow-sm text-gray-900 dark:text-gray-100"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Dead">Dead</option>
+                  </select>
+                </div>
+                <div className="relative group">
+                  <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 h-5 w-5" />
+                  <select
+                    className="pl-12 w-full border border-slate-200/70 dark:border-slate-700 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent transition-all bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm appearance-none shadow-sm text-gray-900 dark:text-gray-100"
+                    value={deviceFilter}
+                    onChange={(e) => setDeviceFilter(e.target.value)}
+                  >
+                    <option value="">All Devices</option>
+                    {deviceOptions.map((opt) => (
+                      <option key={opt.key} value={opt.key}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {isFetchingDevices && <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[11px] text-slate-400 dark:text-slate-500">Loading…</span>}
+                </div>
+                <div className="flex items-center text-sm text-slate-600 dark:text-slate-400 font-medium">
+                  <Package className="h-4 w-4 mr-2 text-indigo-500" />
+                  {visibleParts.length} on page {page + 1} / {totalPages} • total {totalCount}
+                  {isFetching && <span className="ml-2 text-slate-400 dark:text-slate-500">(updating...)</span>}
+                </div>
+                <div className="md:col-span-2 flex justify-end" />
               </div>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <select
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                >
-                  <option value="">All Status</option>
-                  <option value="Active">Active</option>
-                  <option value="Dead">Dead</option>
-                </select>
-              </div>
-              <div className="relative">
-                <Smartphone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <select
-                  className="pl-10 w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                  value={deviceFilter}
-                  onChange={(e) => setDeviceFilter(e.target.value)}
-                >
-                  <option value="">All Devices</option>
-                  {deviceOptions.map((opt) => (
-                    <option key={opt.key} value={opt.key}>{opt.label}</option>
-                  ))}
-                </select>
-                {isFetchingDevices && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">Loading…</span>}
-              </div>
-              <div className="flex items-center text-sm text-gray-700">
-                <Package className="h-4 w-4 mr-2" />
-                {visibleParts.length} on page {page + 1} / {totalPages} • total {totalCount}
-                {isFetching && <span className="ml-2 text-gray-400">(updating...)</span>}
-              </div>
-              {/* Right controls placeholder (pager moved to bottom) */}
-              <div className="flex items-center justify-end space-x-2 md:col-span-2" />
             </div>
           </div>
         </div>
 
         {/* Error State */}
         {isError && (
-          <div className="px-4 sm:px-0 mb-6">
-            <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded">
-              <p className="font-medium">Failed to load parts</p>
+          <div className="mb-8">
+            <div className="p-5 rounded-2xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 shadow-sm">
+              <p className="font-semibold">Failed to load parts</p>
               <p className="text-sm mt-1">{error?.message || 'Something went wrong.'}</p>
-              <button onClick={() => refetch()} className="mt-3 px-3 py-1.5 bg-red-600 text-white rounded text-sm">Retry</button>
+              <button onClick={() => refetch()} className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium shadow hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500/50">Retry</button>
             </div>
           </div>
         )}
 
         {/* Parts Table */}
-        <div className="px-4 sm:px-0">
-          <div className="bg-white/90 backdrop-blur shadow overflow-hidden sm:rounded-md border border-gray-100">
-            {isLoading ? (
-              <div className="py-4">
-                {/* Header skeleton */}
-                <div className="bg-gray-50/80 px-6 py-3 text-xs font-medium text-gray-600 uppercase tracking-wider">Loading parts...</div>
-                <SkeletonRows count={12} />
-              </div>
-            ) : visibleParts.length === 0 ? (
-              <div className="text-center py-12">
-                <Package className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No parts found</h3>
-                <p className="mt-1 text-sm text-gray-600">Try adjusting filters or search.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto relative">
-                {/* Header */}
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50/80">
-                    <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Part Code</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Description</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Model</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Category</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">MAP Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Net Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Stock</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">Status</th>
-                      {isAdmin && (
-                        <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">Actions</th>
-                      )}
-                    </tr>
-                  </thead>
-                </table>
-                {/* Virtualized rows */}
-                {visibleParts.length > 200 ? (
-                  <div className="max-h-[70vh] overflow-auto">
-                    <List
-                      height={Math.min(70 * 8, 560)}
-                      itemCount={visibleParts.length}
-                      itemSize={56}
-                      width={'100%'}
-                      itemData={visibleParts}
-                    >
-                      {Row}
-                    </List>
-                  </div>
-                ) : (
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <tbody className="bg-white divide-y divide-gray-200">
+        <div>
+          <div className="p-[2px] rounded-2xl bg-gradient-to-r from-indigo-400/50 via-fuchsia-400/40 to-pink-400/50 shadow-xl shadow-indigo-200/40 dark:shadow-none overflow-hidden">
+            <div className="bg-white/85 dark:bg-gray-900/70 backdrop-blur-xl rounded-[inherit] overflow-hidden transition-colors">
+              {isLoading ? (
+                <div className="py-6">
+                  <div className="bg-slate-50/80 dark:bg-gray-800/60 px-6 py-3 text-xs font-medium text-slate-600 dark:text-slate-400 uppercase tracking-wider">Loading parts...</div>
+                  <SkeletonRows count={12} />
+                </div>
+              ) : visibleParts.length === 0 ? (
+                <div className="text-center py-16">
+                  <Package className="mx-auto h-14 w-14 text-slate-300 dark:text-slate-600" />
+                  <h3 className="mt-4 text-lg font-semibold text-slate-800 dark:text-slate-200">No parts found</h3>
+                  <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Try adjusting filters or search terms.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full divide-y divide-slate-200/70 dark:divide-slate-700/60">
+                    <thead className="bg-slate-50/70 dark:bg-gray-800/70">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Part Code</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Description</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Model</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Category</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">MAP Price</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Net Price</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Stock</th>
+                        <th className="px-6 py-3 text-left text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Status</th>
+                        {isAdmin && <th className="px-4 py-3 text-right text-[11px] font-semibold tracking-wide uppercase text-slate-600 dark:text-slate-400">Actions</th>}
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white/60 dark:bg-gray-900/40 divide-y divide-slate-100/70 dark:divide-slate-700/60">
                       {visibleParts.map((part) => (
-                        <tr key={part.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium break-all">
+                        <tr key={part.id} className="hover:bg-indigo-50/40 dark:hover:bg-indigo-500/10 transition-colors">
+                          <td className="px-6 py-3 whitespace-nowrap text-sm font-medium break-all">
                             <span className={getPartCodeClass(part.code)} title={part.code}>{part.code}</span>
                           </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title={part.description}>
-                            {part.description}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900 max-w-xs truncate" title={`${part.samsung_match_name || ''}${part.samsung_match_code ? ` (${part.samsung_match_code})` : ''}`}>
-                            {part.samsung_match_name ? (
-                              <span>
-                                {part.samsung_match_name}
-                                {part.samsung_match_code ? ` (${part.samsung_match_code})` : ''}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            {part.samsung_category ? (
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${categoryBadge(part.samsung_category)}`}>
-                                {part.samsung_category}
-                              </span>
-                            ) : (
-                              <span className="text-gray-400 text-sm">-</span>
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${(part.map_price || 0).toFixed(2)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            ${(part.net_price || 0).toFixed(2)}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {part.stock_qty || 0}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                              part.status === 'Active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                            }`}>
-                              {part.status}
-                            </span>
-                          </td>
+                          <td className="px-6 py-3 text-sm text-slate-800 dark:text-slate-200 max-w-xs truncate" title={part.description}>{part.description}</td>
+                          <td className="px-6 py-3 text-sm text-slate-800 dark:text-slate-200 max-w-xs truncate" title={`${part.samsung_match_name || ''}${part.samsung_match_code ? ` (${part.samsung_match_code})` : ''}`}> {part.samsung_match_name ? (<span>{part.samsung_match_name}{part.samsung_match_code ? ` (${part.samsung_match_code})` : ''}</span>) : (<span className="text-slate-400">-</span>)}</td>
+                          <td className="px-6 py-3 whitespace-nowrap">{part.samsung_category ? (<span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${categoryBadge(part.samsung_category)}`}>{part.samsung_category}</span>) : (<span className="text-slate-400 text-sm">-</span>)}</td>
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${(part.map_price || 0).toFixed(2)}</td>
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">${(part.net_price || 0).toFixed(2)}</td>
+                          <td className="px-6 py-3 whitespace-nowrap text-sm text-slate-800 dark:text-slate-200">{part.stock_qty || 0}</td>
+                          <td className="px-6 py-3 whitespace-nowrap"><span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${part.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'}`}>{part.status}</span></td>
                           {isAdmin && (
-                            <td className="px-4 py-4 whitespace-nowrap text-sm font-medium text-right w-24">
-                              <div className="flex justify-end space-x-2">
-                                <button
-                                  onClick={() => setEditingPart(part)}
-                                  className="text-primary-600 hover:text-primary-900"
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDelete(part.id)}
-                                  className="text-red-600 hover:text-red-900"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
+                            <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-right w-24">
+                              <div className="flex justify-end gap-2">
+                                <button onClick={() => setEditingPart(part)} className="text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors"><Edit className="h-4 w-4" /></button>
+                                <button onClick={() => handleDelete(part.id)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 transition-colors"><Trash2 className="h-4 w-4" /></button>
                               </div>
                             </td>
                           )}
@@ -532,58 +476,30 @@ const Parts = () => {
                       ))}
                     </tbody>
                   </table>
-                )}
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Bottom pager controls (only bottom) */}
+        {/* Bottom pager controls */}
         {!isLoading && (
-          <div className="px-4 sm:px-0 mt-4">
-            <div className="flex items-center justify-end space-x-2">
-              <select
-                className="border border-gray-300 rounded-md px-2 py-2 text-sm"
-                value={pageSize}
-                onChange={(e) => { setPage(0); setPageSize(parseInt(e.target.value, 10)); }}
-              >
-                <option value={25}>25 / page</option>
-                <option value={50}>50 / page</option>
-                <option value={100}>100 / page</option>
-              </select>
-              <span className="text-sm text-gray-600 px-2">Page {page + 1} of {totalPages}</span>
-              <button
-                className="inline-flex items-center px-2 py-2 border rounded-md text-sm disabled:opacity-50"
-                onClick={() => setPage(0)}
-                disabled={!canPrev || isFetching}
-                title="First page"
-              >
-                «
-              </button>
-              <button
-                className="inline-flex items-center px-2 py-2 border rounded-md text-sm disabled:opacity-50"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={!canPrev || isFetching}
-                title="Previous page"
-              >
-                <ChevronLeft className="h-4 w-4" /> Prev
-              </button>
-              <button
-                className="inline-flex items-center px-2 py-2 border rounded-md text-sm disabled:opacity-50"
-                onClick={() => setPage((p) => (canNext ? p + 1 : p))}
-                disabled={!canNext || isFetching}
-                title="Next page"
-              >
-                Next <ChevronRight className="h-4 w-4 ml-1" />
-              </button>
-              <button
-                className="inline-flex items-center px-2 py-2 border rounded-md text-sm disabled:opacity-50"
-                onClick={() => setPage(totalPages - 1)}
-                disabled={!canNext || isFetching}
-                title="Last page"
-              >
-                »
-              </button>
+          <div className="mt-6 flex justify-end items-center flex-wrap gap-3 text-sm">
+            <select
+              className="border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 bg-white/70 dark:bg-gray-800/60 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/60 focus:border-transparent text-gray-900 dark:text-gray-100"
+              value={pageSize}
+              onChange={(e) => { setPage(0); setPageSize(parseInt(e.target.value, 10)); }}
+            >
+              <option value={25}>25 / page</option>
+              <option value={50}>50 / page</option>
+              <option value={100}>100 / page</option>
+            </select>
+            <span className="text-slate-600 dark:text-slate-400 px-2">Page {page + 1} of {totalPages}</span>
+            <div className="flex items-center gap-2">
+              <button className="inline-flex items-center px-2 py-2 border rounded-lg bg-white/70 dark:bg-gray-800/60 border-slate-300 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-gray-800 transition disabled:opacity-50" onClick={() => setPage(0)} disabled={!canPrev || isFetching} title="First page">«</button>
+              <button className="inline-flex items-center px-3 py-2 border rounded-lg bg-white/70 dark:bg-gray-800/60 border-slate-300 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-gray-800 transition disabled:opacity-50" onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={!canPrev || isFetching} title="Previous page">Prev</button>
+              <button className="inline-flex items-center px-3 py-2 border rounded-lg bg-white/70 dark:bg-gray-800/60 border-slate-300 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-gray-800 transition disabled:opacity-50" onClick={() => setPage((p) => (canNext ? p + 1 : p))} disabled={!canNext || isFetching} title="Next page">Next</button>
+              <button className="inline-flex items-center px-2 py-2 border rounded-lg bg-white/70 dark:bg-gray-800/60 border-slate-300 dark:border-slate-700 hover:bg-white/90 dark:hover:bg-gray-800 transition disabled:opacity-50" onClick={() => setPage(totalPages - 1)} disabled={!canNext || isFetching} title="Last page">»</button>
             </div>
           </div>
         )}
@@ -593,15 +509,8 @@ const Parts = () => {
       {isAdmin && (showAddModal || editingPart) && (
         <PartModal
           part={editingPart}
-          onClose={() => {
-            setShowAddModal(false);
-            setEditingPart(null);
-          }}
-          onSuccess={() => {
-            queryClient.invalidateQueries('parts');
-            setShowAddModal(false);
-            setEditingPart(null);
-          }}
+          onClose={() => { setShowAddModal(false); setEditingPart(null); }}
+          onSuccess={() => { queryClient.invalidateQueries('parts'); setShowAddModal(false); setEditingPart(null); }}
         />
       )}
     </div>
