@@ -135,6 +135,9 @@ class User(UserBase):
     role: Optional[str] = None
     permissions: Optional[str] = None
     created_at: datetime
+    # New: creator info
+    created_by_id: Optional[int] = None
+    created_by_username: Optional[str] = None
     
     class Config:
         from_attributes = True

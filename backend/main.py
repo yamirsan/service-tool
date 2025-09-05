@@ -206,7 +206,23 @@ async def get_me(current_user: User = Depends(get_current_user)):
 @app.get("/admin/users", response_model=List[User])
 async def list_users(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     require_permission(current_user, 'manage_users')
-    return db.query(UserModel).all()
+    users = db.query(UserModel).all()
+    id_to_username = {u.id: u.username for u in users}
+    # Project ORM objects to dicts that include creator info for API response
+    result = []
+    for u in users:
+        cid = getattr(u, 'created_by_id', None)
+        result.append({
+            'id': u.id,
+            'username': u.username,
+            'is_active': u.is_active,
+            'role': getattr(u, 'role', None),
+            'permissions': getattr(u, 'permissions', None),
+            'created_at': u.created_at,
+            'created_by_id': cid,
+            'created_by_username': id_to_username.get(cid)
+        })
+    return result
 
 # Admin-only: create user (with optional role/permissions)
 @app.post("/admin/users", response_model=User)
@@ -218,7 +234,7 @@ async def admin_create_user(payload: UserCreate, db: Session = Depends(get_db), 
     hashed = get_password_hash(payload.password)
     role = payload.role or 'user'
     perms = payload.permissions
-    db_user = UserModel(username=payload.username, password=hashed, role=role, permissions=perms, is_active='Active')
+    db_user = UserModel(username=payload.username, password=hashed, role=role, permissions=perms, is_active='Active', created_by_id=getattr(current_user, 'id', None))
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
@@ -261,7 +277,7 @@ async def create_user(user: UserCreate, db: Session = Depends(get_db), current_u
         raise HTTPException(status_code=400, detail="Username already registered")
     
     hashed_password = get_password_hash(user.password)
-    db_user = UserModel(username=user.username, password=hashed_password, role=user.role or 'user', permissions=user.permissions)
+    db_user = UserModel(username=user.username, password=hashed_password, role=user.role or 'user', permissions=user.permissions, created_by_id=getattr(current_user, 'id', None))
     db.add(db_user)
     db.commit()
     db.refresh(db_user)

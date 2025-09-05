@@ -11,12 +11,13 @@ const fetchUsers = async () => {
 };
 
 const AdminUsers = () => {
-  const { isAdmin, hasPermission } = useAuth();
+  const { isAdmin, hasPermission, user } = useAuth();
   const allowed = isAdmin || hasPermission('manage_users');
   const qc = useQueryClient();
   const { data: users = [], isLoading } = useQuery(['admin-users'], fetchUsers, { enabled: allowed });
 
   const [form, setForm] = useState({ username: '', password: '', role: 'user', permissions: '' });
+  const [showOnlyMine, setShowOnlyMine] = useState(false);
 
   const createMutation = useMutation(
     async (payload) => (await axios.post('/admin/users', payload)).data,
@@ -38,12 +39,23 @@ const AdminUsers = () => {
 
   if (!allowed) return <div className="p-6">Not authorized.</div>;
 
+  const visibleUsers = useMemo(() => {
+    if (!showOnlyMine || !user?.id) return users;
+    return users.filter(u => u.created_by_id === user.id);
+  }, [showOnlyMine, users, user]);
+
   return (
     <div className="max-w-5xl mx-auto p-6">
       <h2 className="text-2xl font-bold mb-4">User Management</h2>
 
       <div className="bg-white shadow rounded p-4 mb-6">
-        <h3 className="font-semibold mb-3">Create User</h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold">Create User</h3>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <input type="checkbox" className="rounded" checked={showOnlyMine} onChange={e=>setShowOnlyMine(e.target.checked)} />
+            Show only users I created
+          </label>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <input className="border rounded px-3 py-2" placeholder="Username" value={form.username} onChange={e=>setForm(f=>({...f, username: e.target.value}))} />
           <input className="border rounded px-3 py-2" placeholder="Password" type="password" value={form.password} onChange={e=>setForm(f=>({...f, password: e.target.value}))} />
@@ -64,7 +76,7 @@ const AdminUsers = () => {
           {isLoading ? (
             <div className="p-4">Loading...</div>
           ) : (
-            users.map(u => <UserRow key={u.id} user={u} onUpdate={updateMutation.mutate} onDelete={()=>deleteMutation.mutate(u.id)} />)
+            visibleUsers.map(u => <UserRow key={u.id} user={u} onUpdate={updateMutation.mutate} onDelete={()=>deleteMutation.mutate(u.id)} />)
           )}
         </div>
       </div>
@@ -87,8 +99,8 @@ const UserRow = ({ user, onUpdate, onDelete }) => {
         <>
           <input className="border rounded px-2 py-1 w-40" value={draft.username} onChange={e=>setDraft(d=>({...d, username: e.target.value}))} />
           <select className="border rounded px-2 py-1" value={draft.is_active} onChange={e=>setDraft(d=>({...d, is_active: e.target.value}))}>
-            <option>Active</option>
-            <option>Inactive</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
           </select>
           <select className="border rounded px-2 py-1" value={draft.role} onChange={e=>setDraft(d=>({...d, role: e.target.value}))}>
             <option value="user">user</option>
@@ -103,6 +115,7 @@ const UserRow = ({ user, onUpdate, onDelete }) => {
           <div className="w-28"><span className={`px-2 py-1 text-xs rounded ${user.is_active==='Active'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-700'}`}>{user.is_active}</span></div>
           <div className="w-28"><span className={`px-2 py-1 text-xs rounded ${user.role==='admin'?'bg-purple-100 text-purple-700':'bg-blue-100 text-blue-700'}`}>{user.role || 'user'}</span></div>
           <div className="flex-1 text-sm text-gray-600">{user.permissions || '-'}</div>
+          <div className="w-48 text-xs text-gray-500">Created by: {user.created_by_username || '-'}</div>
           <div className="flex gap-2">
             <button className="text-primary-600" onClick={()=>setEditing(true)}>Edit</button>
             <button className="text-red-600 inline-flex items-center" onClick={onDelete}><Trash2 className="w-4 h-4 mr-1"/>Delete</button>

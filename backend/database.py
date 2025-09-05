@@ -63,6 +63,8 @@ class User(Base):
     # New: role and permissions (CSV string). role in { 'admin', 'user' }
     role = Column(String(20), default="user")
     permissions = Column(Text, nullable=True)
+    # New: track creator (admin who created this user)
+    created_by_id = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 # New table to manage Samsung models and their categories
@@ -216,6 +218,12 @@ def ensure_schema():
                     conn.exec_driver_sql("ALTER TABLE users ADD COLUMN permissions TEXT")
                 except Exception as e:
                     print(f"Warning: could not add permissions to users: {e}")
+            # New: add created_by_id if missing
+            if 'created_by_id' not in ucols:
+                try:
+                    conn.exec_driver_sql("ALTER TABLE users ADD COLUMN created_by_id INTEGER")
+                except Exception as e:
+                    print(f"Warning: could not add created_by_id to users: {e}")
 
 
 def get_db():
